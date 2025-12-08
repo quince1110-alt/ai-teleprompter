@@ -40,8 +40,8 @@ if audio_value and api_key:
             # 核心 Prompt
             prompt = "请将这段音频内容改写为适合 iPad 投屏的提词卡。要求：用 --- 分页，用 # 做大标题，用 > 做动作提示。"
 
-            # 【修复点】使用 latest 版本，防止 404 错误
-            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+            # 【关键修改】使用最标准的模型名称
+            model = genai.GenerativeModel("gemini-1.5-flash")
             
             result = model.generate_content([prompt, myfile])
             
@@ -54,4 +54,4 @@ if audio_value and api_key:
             st.error(f"发生错误: {e}")
 
 elif audio_value and not api_key:
-  AIzaSyBMt_E2oF2eyfkxPdlKXuNG2igimv8x11g("请在左侧填入 Key")
+    AIzaSyBMt_E2oF2eyfkxPdlKXuNG2igimv8x11g("请在左侧填入 Key")

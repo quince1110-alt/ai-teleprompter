@@ -19,7 +19,7 @@ st.markdown("""
         font-family: 'Times New Roman', 'Songti SC', serif !important;
     }
 
-    /* 标题 (## 🎬 导演分析报告) */
+    /* 标题样式 */
     h2 {
         color: #1a1a1a !important;
         font-size: 36px !important;
@@ -28,30 +28,39 @@ st.markdown("""
         margin-top: 40px !important;
     }
 
-    /* 重点强调 (加粗部分) */
+    /* 重点强调 */
     strong {
-        color: #8B4513 !important; /* 导演批注用深棕色 */
+        color: #8B4513 !important;
         font-weight: 900 !important;
     }
 
-    /* --- 核心：提词卡片区域样式 --- */
-    
-    /* 识别“【卡片”开头的文字，让它变得巨大 */
+    /* --- 提词卡片样式 --- */
     p, li {
         font-size: 22px !important;
         line-height: 1.6 !important;
         color: #333 !important;
     }
 
-    /* 让列表项更清晰 */
     ul {
         background-color: rgba(255,255,255,0.4);
         padding: 20px;
         border-radius: 10px;
         margin-bottom: 20px;
     }
+    
+    /* 按钮样式优化 */
+    .stButton button {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        font-size: 20px !important;
+        padding: 10px 30px !important;
+        border-radius: 30px !important;
+        border: none !important;
+    }
+    .stButton button:hover {
+        background-color: #333333 !important;
+    }
 
-    /* 隐藏不需要的元素 */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
@@ -66,13 +75,28 @@ with st.sidebar:
     else:
         api_key = st.text_input("输入 Google API Key", type="password")
     
-    st.info("💡 AI 导演正在待命：它将分析你的语感，并生成引导式提词卡。")
+    st.info("💡 操作指南：\n1. 点击录音\n2. 录完后点击“生成报告”按钮")
 
 # --- 4. 主程序 ---
 st.title("🎬 AI 视频导演")
 st.markdown("捕捉瞬间的灵感，即刻生成专业的拍摄脚本。")
 
+# 录音组件
 audio_value = st.audio_input("点击录音")
 
-if audio_value and api_key:
-    genai.configure(api_key=api_key)
+# 只有当录音存在时，才显示“生成按钮”
+if audio_value:
+    st.success("✅ 录音已保存！请点击下方按钮开始分析。")
+    
+    # --- 新增：手动触发按钮 ---
+    if st.button("🎬 生成导演分析报告", type="primary"):
+        
+        if not api_key:
+            st.warning("请先在左侧填入 Google API Key")
+            st.stop()
+
+        genai.configure(api_key=api_key)
+        
+        with st.spinner("导演正在回放你的录音，分析情绪与逻辑... (Gemini 2.5)"):
+            try:
+                #

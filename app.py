@@ -1,4 +1,7 @@
-import streamlit as st import google.generativeai as genai import tempfile import os
+import streamlit as st 
+import google.generativeai as genai 
+import tempfile 
+import os
 
 st.set_page_config(page_title="AI 提词器", layout="wide")
 

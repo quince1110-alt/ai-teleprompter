@@ -1,0 +1,7 @@
+{
+  "name": "真诚流 AI 视频导演",
+  "description": "你的 AI 口语教练与视频导演，分析语音并生成结构化拍摄脚本。",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

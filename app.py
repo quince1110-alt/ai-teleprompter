@@ -12,16 +12,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Part 2: 侧边栏 (注意缩进) ---
+# --- Part 2: 侧边栏 ---
 with st.sidebar:
     st.header("设置")
-    # 如果 secrets 里有 Key 就用，没有就显示输入框
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
     else:
         api_key = st.text_input("输入 Google API Key", type="password")
 
-# --- Part 3: 主程序 (必须顶格写，不能有空格) ---
+# --- Part 3: 主程序 ---
 st.title("🎙️ AI 口播提词器")
 
 audio_value = st.audio_input("点击录音")
@@ -41,8 +40,9 @@ if audio_value and api_key:
             # 核心 Prompt
             prompt = "请将这段音频内容改写为适合 iPad 投屏的提词卡。要求：用 --- 分页，用 # 做大标题，用 > 做动作提示。"
 
-            # 调用模型
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            # 【修复点】使用 latest 版本，防止 404 错误
+            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+            
             result = model.generate_content([prompt, myfile])
             
             # 显示结果
@@ -51,7 +51,7 @@ if audio_value and api_key:
             # 删除临时文件
             os.remove(tmp_path)
         except Exception as e:
-            st.error(e)
+            st.error(f"发生错误: {e}")
 
 elif audio_value and not api_key:
-    AIzaSyBMt_E2oF2eyfkxPdlKXuNG2igimv8x11g("请在左侧填入 Key")
+    st.warning("请在左侧填入 Key")

@@ -1,57 +1,47 @@
 import streamlit as st
 import google.generativeai as genai
-import tempfile
 import os
 
-# --- Part 1: 页面基础设置 ---
-st.set_page_config(page_title="AI 提词器", layout="wide")
+st.title("🔧 故障诊断模式")
 
-st.markdown("""
-<style>
-.stApp { background-color: #F2F0E9; }
-</style>
-""", unsafe_allow_html=True)
+# 1. 检查库的版本
+st.write(f"**当前 google-generativeai 库版本:** `{genai.__version__}`")
+st.info("如果版本低于 0.5.0，绝对无法使用 1.5-flash 模型。")
 
-# --- Part 2: 侧边栏 ---
-with st.sidebar:
-    st.header("设置")
-    if "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-    else:
-        api_key = st.text_input("输入 Google API Key", type="password")
+# 2. 检查 API Key
+api_key = st.secrets.get("GOOGLE_API_KEY")
 
-# --- Part 3: 主程序 ---
-st.title("🎙️ AI 口播提词器")
-
-audio_value = st.audio_input("点击录音")
-
-if audio_value and api_key:
+if not api_key:
+    st.error("❌ 后台没有检测到 API Key，请去 Settings -> Secrets 检查。")
+else:
+    st.success(f"✅ 检测到 API Key (末尾四位): ...{api_key[-4:]}")
+    
+    # 3. 尝试连接 Google 并列出模型
     genai.configure(api_key=api_key)
-    with st.spinner("AI 正在思考..."):
-        try:
-            # 保存临时录音文件
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
-                tmp.write(audio_value.read())
-                tmp_path = tmp.name
-
-            # 上传给 Google
-            myfile = genai.upload_file(tmp_path)
+    
+    st.write("---")
+    st.write("### 正在向 Google 查询可用模型列表...")
+    
+    try:
+        available_models = []
+        # 列出所有支持生成内容的模型
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                available_models.append(m.name)
+        
+        if available_models:
+            st.success("🎉 连接成功！你的 Key 是有效的。")
+            st.write("你的账号可以使用以下模型：")
+            st.code("\n".join(available_models))
             
-            # 核心 Prompt
-            prompt = "请将这段音频内容改写为适合 iPad 投屏的提词卡。要求：用 --- 分页，用 # 做大标题，用 > 做动作提示。"
-
-            # 【关键修改】使用最标准的模型名称
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            st.write("---")
+            if "models/gemini-1.5-flash" in available_models:
+                st.balloons()
+                st.write("✅ **好消息：列表中包含 gemini-1.5-flash！** (说明之前是代码拼写或缓存问题)")
+            else:
+                st.warning("⚠️ **坏消息：列表中没有 Flash 模型。** 请尝试使用列表里存在的模型名字（比如 gemini-pro）修改代码。")
+        else:
+            st.warning("连接成功，但没有找到任何可用模型。")
             
-            result = model.generate_content([prompt, myfile])
-            
-            # 显示结果
-            st.markdown(result.text)
-            
-            # 删除临时文件
-            os.remove(tmp_path)
-        except Exception as e:
-            st.error(f"发生错误: {e}")
-
-elif audio_value and not api_key:
-    AIzaSyBMt_E2oF2eyfkxPdlKXuNG2igimv8x11g("请在左侧填入 Key")
+    except Exception as e:
+        st.error(f"❌ 连接失败，可能是 Key 无效或网络问题。报错信息：\n{e}")

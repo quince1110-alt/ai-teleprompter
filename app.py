@@ -10,7 +10,7 @@ st.markdown("""
 <style> .stApp { background-color: #F2F0E9; } </style>
 
 """, unsafe_allow_html=True)
-with 
+with
 st.sidebar: st.header("设置") if "GOOGLE_API_KEY" in st.secrets: api_key = st.secrets["GOOGLE_API_KEY"] else: api_key = st.text_input("输入 Google API Key", type="password")
 st.title("🎙️ AI 口播提词器")
 

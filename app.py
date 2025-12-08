@@ -54,4 +54,4 @@ if audio_value and api_key:
             st.error(f"发生错误: {e}")
 
 elif audio_value and not api_key:
-    st.warning("请在左侧填入 Key")
+  AIzaSyBMt_E2oF2eyfkxPdlKXuNG2igimv8x11g("请在左侧填入 Key")

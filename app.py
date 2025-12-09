@@ -3,23 +3,62 @@ import google.generativeai as genai
 import tempfile
 import os
 
+# --- 0. 核心提示词 (Prompt) - 移到最前面防止报错 ---
+DIRECTOR_PROMPT = """
+你是一位顶级演讲撰稿人。请仔细听这段录音，完成以下两个任务：
+
+**任务一：风格学习 (Style Analysis)**
+1. 捕捉说话人的【情绪状态】（如：兴奋、冷静、吐槽、亲切）。
+2. 捕捉说话人的【语言风格】（如：喜欢用反问、喜欢用短句、幽默感、还是专业严谨）。
+
+**任务二：撰写口播逐字稿 (Script Writing)**
+基于录音的核心内容，**保持上述分析出的用户风格**，将其改写为一篇**可以直接照着念的逐字稿**。
+
+**稿件结构强制要求：**
+1. **黄金三秒 (Hook):** 开头必须抓人，制造悬念或共鸣。
+2. **内容区块 (Body):** 将内容逻辑分段，每段只讲一个点。
+3. **结尾升华 (CTA):** 金句收尾，引导行动。
+
+**Output Format (Markdown 排版规则 - 适配 iPad 提词器):**
+
+## 📝 风格分析报告
+* **检测到的情绪:** [例如：充满激情的]
+* **建议演绎方式:** [例如：语速加快，配合手势]
+
+---
+
+## 🎥 拍摄逐字稿 (Teleprompter Script)
+
+**【Part 1：黄金三秒】**
+> (动作指导，例如：眼神犀利，身体前倾)
+# 这里写第一句台词，要是完整的句子。
+# 哪怕是短句也要分行写。
+
+**【Part 2：核心内容】**
+> (动作指导，例如：放松语调，像是在和朋友聊天)
+# 这里写正文内容的逐字稿。
+# 保持用户的口语习惯，不要太书面化。
+# 每一句口播词都要用 # 开头，这样字才够大。
+
+**【Part 3：结尾】**
+> (动作指导，例如：微笑，笃定)
+# 这里写结尾金句。
+# 记得引导点赞关注。
+
+---
+*(注意：生成的稿件必须是【逐字稿】，用户不需要自己组织语言，直接念即可。)*
+"""
+
 # --- 1. 页面基础配置 ---
 st.set_page_config(page_title="AI 影子写手", layout="wide")
 
-# --- 2. 注入“沉浸式”视觉样式 (CSS) ---
+# --- 2. 注入 CSS 样式 ---
 st.markdown("""
 <style>
-    /* 全局背景：高级米色 */
-    .stApp {
-        background-color: #F2F0E9;
-    }
+    .stApp { background-color: #F2F0E9; }
+    * { font-family: 'Times New Roman', 'Songti SC', serif !important; }
     
-    /* 字体：衬线体，剧本感 */
-    * {
-        font-family: 'Times New Roman', 'Songti SC', serif !important;
-    }
-
-    /* 标题样式 (分析报告用) */
+    /* 标题样式 */
     h2 {
         color: #1a1a1a !important;
         font-size: 32px !important;
@@ -28,90 +67,4 @@ st.markdown("""
         margin-top: 40px !important;
     }
 
-    /* --- 核心：提词器大字报样式 --- */
-    /* 只有用 # 开头的文字才会变大，方便朗读 */
-    .stMarkdown h1 {
-        font-size: 65px !important; /* 字号加大到 65px */
-        line-height: 1.4 !important;
-        color: #000000 !important;
-        font-weight: 800 !important;
-        margin-bottom: 40px !important;
-        text-align: left;
-    }
-
-    /* 动作指导 (引用块) */
-    .stMarkdown blockquote {
-        font-size: 24px !important;
-        color: #666666 !important;
-        border-left: 6px solid #d4af37 !important;
-        background-color: rgba(255,255,255,0.6) !important;
-        padding: 20px !important;
-        font-style: italic !important;
-        margin-bottom: 10px !important;
-    }
-
-    /* 按钮样式优化 */
-    .stButton button {
-        background-color: #1a1a1a !important;
-        color: #ffffff !important;
-        font-size: 20px !important;
-        padding: 10px 30px !important;
-        border-radius: 30px !important;
-        border: none !important;
-        width: 100%;
-    }
-    .stButton button:hover {
-        background-color: #333333 !important;
-    }
-
-    /* 隐藏顶部红条 */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-</style>
-""", unsafe_allow_html=True)
-
-# --- 3. 侧边栏 ---
-with st.sidebar:
-    st.header("⚙️ 设置")
-    if "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-    else:
-        api_key = st.text_input("输入 Google API Key", type="password")
-    
-    st.info("💡 提示：AI 会学习你的语气，生成带有你个人风格的【逐字稿】。")
-
-# --- 4. 主程序 ---
-st.title("🗣️ AI 影子写手 (风格克隆版)")
-st.markdown("像你一样说话，但说得更漂亮。")
-
-# 录音组件
-audio_value = st.audio_input("点击录音 (随便聊聊你的想法)")
-
-if audio_value:
-    st.success("✅ 录音已捕获！点击下方按钮开始生成逐字稿。")
-    
-    if st.button("✍️ 生成我的口播稿", type="primary"):
-        
-        if not api_key:
-            st.warning("请先在左侧填入 Google API Key")
-            st.stop()
-
-        genai.configure(api_key=api_key)
-        
-        with st.spinner("正在学习你的语气并撰写稿件... (Gemini 2.5)"):
-            try:
-                # 1. 保存音频
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
-                    tmp.write(audio_value.read())
-                    tmp_path = tmp.name
-
-                # 2. 上传音频
-                myfile = genai.upload_file(tmp_path)
-                
-                # 3. 核心 Prompt (已更新为风格克隆+逐字稿模式)
-                prompt = """
-                你是一位顶级演讲撰稿人。请仔细听这段录音，完成以下两个任务：
-
-                **任务一：风格学习 (Style Analysis)**
-                1.
+    /* 提词器大字报样式 -
